@@ -11,10 +11,10 @@ void signal_handler(int signal) {
   driver.stop();
 }
 
-void vicon_callback(double time, std::array<double, 3> pos, std::array<double, 4> quat) {
-  std::cout << "Time is " << time << std::endl;
-  std::cout << "Pos is " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-  std::cout << "Quat is " << quat[0] << " " << quat[1] << " " << quat[2] << " " << quat[3] << std::endl;
+void vicon_callback(ViconResult res) {
+  std::cout << "Latency is " << res.latency << std::endl;
+  std::cout << "Pos is " << res.pos[0] << " " << res.pos[1] << " " << res.pos[2] << std::endl;
+  std::cout << "Quat is " << res.quat[0] << " " << res.quat[1] << " " << res.quat[2] << " " << res.quat[3] << std::endl;
 }
 
 int main(int argc, char **argv) {

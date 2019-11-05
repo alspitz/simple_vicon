@@ -9,8 +9,15 @@
 
 namespace ViconSDK = ViconDataStreamSDK::CPP;
 
+class ViconResult {
+  public:
+    double latency{0.0};
+    std::array<double, 3> pos{0, 0, 0};
+    std::array<double, 4> quat{0, 0, 0};
+};
+
 class ViconDriver {
-  typedef std::function<void(double, std::array<double, 3>, std::array<double, 4>)> callback_type;
+  typedef std::function<void(ViconResult)> callback_type;
 
   public:
     bool init(const std::string& host, const std::string& target_subject, callback_type callback);

@@ -1,6 +1,5 @@
 #include <simple_vicon/ViconDriver.h>
 
-#include <chrono>
 #include <iostream>
 
 bool ViconDriver::init(const std::string& host, const std::string& target_subject, callback_type callback) {
@@ -28,8 +27,6 @@ void ViconDriver::run_loop() {
   while (running_.load()) {
     auto result = client_.GetFrame().Result;
 
-    double now = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-
     if (result != ViconSDK::Result::Success) {
       std::cerr << "ViconSDK GetFrame did not return success: " << result << std::endl;
       continue;
@@ -42,7 +39,9 @@ void ViconDriver::run_loop() {
         continue;
       }
 
-      double lat = client_.GetLatencyTotal().Total;
+      ViconResult res;
+
+      res.latency = client_.GetLatencyTotal().Total;
 
       std::string segment_name = client_.GetSegmentName(subject_name, 0).SegmentName;
       auto trans = client_.GetSegmentGlobalTranslation(subject_name, segment_name);
@@ -55,21 +54,21 @@ void ViconDriver::run_loop() {
         std::cerr << "Rotation get failed" << std::endl;
       }
 
-      std::array<double, 3> pos {
+      res.pos = {
         trans.Translation[0] / 1000.0,
         trans.Translation[1] / 1000.0,
         trans.Translation[2] / 1000.0
       };
 
       // Quaternion is returned in W last format; we store it W first.
-      std::array<double, 4> quat {
+      res.quat = {
         rot.Rotation[3],
         rot.Rotation[0],
         rot.Rotation[1],
         rot.Rotation[2],
       };
 
-      callback_(now - lat, pos, quat);
+      callback_(res);
     }
   }
 }
