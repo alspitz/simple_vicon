@@ -23,16 +23,22 @@ add_definitions(${catkin_DEFINITIONS})
 add_library(viconsdk SHARED IMPORTED)
 set_target_properties(viconsdk PROPERTIES IMPORTED_LOCATION "${vicon_SDK_DIR}/libViconDataStreamSDK_CPP.so")
 
-add_library(multirotor_integrated
+add_library(vicon_driverlib
   src/ViconDriver.cpp
 )
 
-target_link_libraries(multirotor_integrated
+target_link_libraries(vicon_driverlib
   ${catkin_LIBRARIES}
   viconsdk
 )
 
-install(TARGETS multirotor_integrated DESTINATION lib)
+add_executable(vicon_test src/vicon_test.cpp)
+
+target_link_libraries(vicon_test
+  vicon_driverlib
+)
+
+install(TARGETS vicon_driverlib DESTINATION lib)
 install(FILES "${vicon_SDK_DIR}/libViconDataStreamSDK_CPP.so" DESTINATION lib)
 install(FILES "${vicon_SDK_DIR}/libboost_chrono-mt.so.1.51.0" DESTINATION lib)
 install(FILES "${vicon_SDK_DIR}/libboost_system-mt.so.1.51.0" DESTINATION lib)
