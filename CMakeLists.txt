@@ -1,8 +1,24 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(simple_vicon)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+# Update submodules as needed
+    option(GIT_SUBMODULE "Check submodules during build" ON)
+    if(GIT_SUBMODULE)
+        message(STATUS "Submodule update")
+        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
+        if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+            message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+        endif()
+    endif()
+endif()
+
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/extern/vicon-datastream-sdk/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+endif()
 
 find_package(catkin REQUIRED COMPONENTS
       roscpp
@@ -10,36 +26,25 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package(
       INCLUDE_DIRS include
-      LIBRARIES vicon
-      CATKIN_DEPENDS
+      LIBRARIES vicon_driver
+      CATKIN_DEPENDS roscpp
 )
 
-set(vicon_SDK_DIR "${CMAKE_CURRENT_LIST_DIR}/../vicon_mocap/vicon_driver/vicon_sdk/Linux64")
+add_subdirectory(extern/vicon-datastream-sdk)
 
-include_directories(include ${catkin_INCLUDE_DIRS} ${vicon_SDK_DIR})
-link_directories(${catkin_LIBRARY_DIRS} ${vicon_SDK_DIR})
-add_definitions(${catkin_DEFINITIONS})
-
-add_library(viconsdk SHARED IMPORTED)
-set_target_properties(viconsdk PROPERTIES IMPORTED_LOCATION "${vicon_SDK_DIR}/libViconDataStreamSDK_CPP.so")
-
-add_library(vicon_driverlib
+add_library(vicon_driver
   src/ViconDriver.cpp
 )
-
-target_link_libraries(vicon_driverlib
+target_include_directories(vicon_driver PUBLIC include ${catkin_INCLUDE_DIRS})
+target_link_libraries(vicon_driver PUBLIC
   ${catkin_LIBRARIES}
-  viconsdk
+  ViconDataStreamSDK_CPP
 )
+target_compile_features(vicon_driver PRIVATE cxx_std_17)
 
 add_executable(vicon_test src/vicon_test.cpp)
-
 target_link_libraries(vicon_test
-  vicon_driverlib
+  vicon_driver
 )
 
-install(TARGETS vicon_driverlib DESTINATION lib)
-install(FILES "${vicon_SDK_DIR}/libViconDataStreamSDK_CPP.so" DESTINATION lib)
-install(FILES "${vicon_SDK_DIR}/libboost_chrono-mt.so.1.51.0" DESTINATION lib)
-install(FILES "${vicon_SDK_DIR}/libboost_system-mt.so.1.51.0" DESTINATION lib)
-install(FILES "${vicon_SDK_DIR}/libboost_thread-mt.so.1.51.0" DESTINATION lib)
+install(TARGETS vicon_driver DESTINATION lib)

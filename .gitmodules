@@ -1,0 +1,3 @@
+[submodule "extern/vicon-datastream-sdk"]
+	path = extern/vicon-datastream-sdk
+	url = https://github.com/rislab/vicon-datastream-sdk.git

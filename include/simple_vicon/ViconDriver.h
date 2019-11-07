@@ -5,7 +5,7 @@
 #include <functional>
 #include <string>
 
-#include "Client.h"
+#include <ViconDataStreamSDK_CPP/DataStreamClient.h>
 
 namespace ViconSDK = ViconDataStreamSDK::CPP;
 
