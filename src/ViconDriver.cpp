@@ -2,17 +2,17 @@
 
 #include <iostream>
 
-bool ViconDriver::init(const std::string& host, const std::string& target_subject, callback_type callback) {
-  target_subject_ = target_subject;
+bool ViconDriver::init(const vicon_driver_params_t& params, callback_type callback) {
+  target_subjects_ = params.target_subjects;
   callback_ = callback;
 
-  client_.Connect(host);
+  client_.Connect(params.server_ip);
   if (!client_.IsConnected().Connected) {
-    std::cerr << "Failed to connect to Vicon server at " << host << std::endl;
+    std::cerr << "Failed to connect to Vicon server at " << params.server_ip << std::endl;
     return false;
   }
 
-  client_.SetStreamMode(ViconSDK::StreamMode::ServerPush);
+  client_.SetStreamMode(params.stream_mode);
   client_.SetAxisMapping(ViconSDK::Direction::Forward,
                          ViconSDK::Direction::Left,
                          ViconSDK::Direction::Up);
@@ -32,16 +32,17 @@ void ViconDriver::run_loop() {
       continue;
     }
 
+    vicon_result_t res;
+    res.latency = client_.GetLatencyTotal().Total;
+
     int n_subjects = client_.GetSubjectCount().SubjectCount;
     for (int i = 0; i < n_subjects; i++) {
       std::string subject_name = client_.GetSubjectName(i).SubjectName;
-      if (subject_name != target_subject_) {
+
+      // Only callback with subjects that are targets.
+      if (std::find(target_subjects_.begin(), target_subjects_.end(), subject_name) == target_subjects_.end()) {
         continue;
       }
-
-      ViconResult res;
-
-      res.latency = client_.GetLatencyTotal().Total;
 
       std::string segment_name = client_.GetSegmentName(subject_name, 0).SegmentName;
       auto trans = client_.GetSegmentGlobalTranslation(subject_name, segment_name);
@@ -54,20 +55,24 @@ void ViconDriver::run_loop() {
         std::cerr << "Rotation get failed" << std::endl;
       }
 
-      res.pos = {
-        trans.Translation[0] / 1000.0,
-        trans.Translation[1] / 1000.0,
-        trans.Translation[2] / 1000.0
-      };
+      res.data.emplace_back(
+        subject_name,
+        std::array<double, 3> {
+          trans.Translation[0] / 1000.0,
+          trans.Translation[1] / 1000.0,
+          trans.Translation[2] / 1000.0
+        },
+        // Quaternion is returned in W last format; we store it W first.
+        std::array<double, 4> {
+          rot.Rotation[3],
+          rot.Rotation[0],
+          rot.Rotation[1],
+          rot.Rotation[2]
+        }
+      );
+    }
 
-      // Quaternion is returned in W last format; we store it W first.
-      res.quat = {
-        rot.Rotation[3],
-        rot.Rotation[0],
-        rot.Rotation[1],
-        rot.Rotation[2],
-      };
-
+    if (res.data.size()) {
       callback_(res);
     }
   }

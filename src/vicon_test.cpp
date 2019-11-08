@@ -11,10 +11,13 @@ void signal_handler(int signal) {
   driver.stop();
 }
 
-void vicon_callback(ViconResult res) {
+void vicon_callback(vicon_result_t res) {
   std::cout << "Latency is " << res.latency << std::endl;
-  std::cout << "Pos is " << res.pos[0] << " " << res.pos[1] << " " << res.pos[2] << std::endl;
-  std::cout << "Quat is " << res.quat[0] << " " << res.quat[1] << " " << res.quat[2] << " " << res.quat[3] << std::endl;
+  for (const auto& vicon_pose : res.data) {
+    std::cout << "Subject " << vicon_pose.subject << std::endl;
+    std::cout << "\tPos is " << vicon_pose.pos[0] << " " << vicon_pose.pos[1] << " " << vicon_pose.pos[2] << std::endl;
+    std::cout << "\tQuat is " << vicon_pose.quat[0] << " " << vicon_pose.quat[1] << " " << vicon_pose.quat[2] << " " << vicon_pose.quat[3] << std::endl;
+  }
 }
 
 int main(int argc, char **argv) {
@@ -23,7 +26,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (!driver.init(argv[1], argv[2], vicon_callback)) {
+  vicon_driver_params_t params;
+  params.server_ip = argv[1];
+  params.stream_mode = ViconSDK::StreamMode::ServerPush;
+  params.target_subjects.push_back(argv[2]);
+
+  if (!driver.init(params, vicon_callback)) {
     std::cerr << "Failed to init driver" << std::endl;
     return 1;
   }
