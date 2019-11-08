@@ -3,7 +3,6 @@
 #include <iostream>
 
 bool ViconDriver::init(const vicon_driver_params_t& params, callback_type callback) {
-  target_subjects_ = params.target_subjects;
   callback_ = callback;
 
   client_.Connect(params.server_ip);
@@ -33,16 +32,13 @@ void ViconDriver::run_loop() {
     }
 
     vicon_result_t res;
-    res.latency = client_.GetLatencyTotal().Total;
+    // TODO: Fill this with the actual time.
+    // Proposed strategy: subtract latency from timecode
+    res.time = client_.GetLatencyTotal().Total;
 
     int n_subjects = client_.GetSubjectCount().SubjectCount;
     for (int i = 0; i < n_subjects; i++) {
       std::string subject_name = client_.GetSubjectName(i).SubjectName;
-
-      // Only callback with subjects that are targets.
-      if (std::find(target_subjects_.begin(), target_subjects_.end(), subject_name) == target_subjects_.end()) {
-        continue;
-      }
 
       std::string segment_name = client_.GetSegmentName(subject_name, 0).SegmentName;
       auto trans = client_.GetSegmentGlobalTranslation(subject_name, segment_name);
@@ -57,6 +53,7 @@ void ViconDriver::run_loop() {
 
       res.data.emplace_back(
         subject_name,
+        trans.Occluded or rot.Occluded,
         std::array<double, 3> {
           trans.Translation[0] / 1000.0,
           trans.Translation[1] / 1000.0,
@@ -73,7 +70,7 @@ void ViconDriver::run_loop() {
     }
 
     if (res.data.size()) {
-      callback_(res);
+      callback_(std::move(res));
     }
   }
 }
