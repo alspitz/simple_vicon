@@ -48,8 +48,8 @@ void ViconDriver::run_loop() {
     // TODO: Determine average round trip network delay in a separate slower thread and save in network_lag_estimate_?
     // TODO: Also add jump logic here since timecode rotates every 24 hours...
     if (timecode_offset_ == 0.0) {
-      timecode_offset_ =
-          std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() * 0.000001 - network_lag_estimate_ - timecode_time;
+      timecode_offset_ = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()
+                         - network_lag_estimate_ - timecode_time;
     }
     // Move the timecode to the client (our) clock, and subtract the vicon system estimated latency from it.
     res.time = timecode_time + timecode_offset_ - client_.GetLatencyTotal().Total;
