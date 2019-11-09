@@ -5,8 +5,10 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include <ViconDataStreamSDK_CPP/DataStreamClient.h>
+#include <ViconDataStreamSDK_CPP/IDataStreamClientBase.h>
 
 namespace ViconSDK = ViconDataStreamSDK::CPP;
 
@@ -35,9 +37,10 @@ typedef struct vicon_result {
 } vicon_result_t;
 
 class ViconDriver {
-  typedef std::function<void(vicon_result_t)> callback_type;
+  typedef std::function<void(const vicon_result_t&)> callback_type;
 
   public:
+    ViconDriver():running_(false), timecode_offset_(0.0), network_lag_estimate_(0.0){}
     bool init(const vicon_driver_params_t& params, callback_type callback);
     void run_loop();
     void stop();
@@ -46,4 +49,5 @@ class ViconDriver {
     ViconSDK::Client client_;
     std::atomic<bool> running_;
     callback_type callback_;
+    double timecode_offset_, network_lag_estimate_;
 };
