@@ -61,9 +61,9 @@ void ViconDriverROS::viconCallback(vicon_result_t vicon_result) {
     sub.pose.position.y = vicon_pose.pos[1];
     sub.pose.position.z = vicon_pose.pos[2];
     sub.pose.orientation.w = vicon_pose.quat[0];
-    sub.pose.orientation.x = vicon_pose.pos[1];
-    sub.pose.orientation.y = vicon_pose.pos[2];
-    sub.pose.orientation.z = vicon_pose.pos[3];
+    sub.pose.orientation.x = vicon_pose.quat[1];
+    sub.pose.orientation.y = vicon_pose.quat[2];
+    sub.pose.orientation.z = vicon_pose.quat[3];
 
     pub->publish(sub);
   }
