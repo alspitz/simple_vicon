@@ -41,7 +41,7 @@ void ViconDriver::run_loop() {
     }
 
     // Convert Timecode to seconds
-    double framerate = client_.GetFrameRate().Result;
+    double framerate = client_.GetFrameRate().FrameRateHz;
     double timecode_time = timecode.Hours * 3600.0 + timecode.Minutes * 60.0 + timecode.Seconds + (timecode.Frames * timecode.SubFramesPerFrame + timecode.SubFrame) / framerate;
 
     // Is this the first time we're seeing data? If so, initialise timecode_offset_
