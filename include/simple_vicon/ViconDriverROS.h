@@ -6,7 +6,7 @@
 
 #include <ros/ros.h>
 
-class ViconDriverROS{
+class ViconDriverROS {
   public:
     bool initialize(const ros::NodeHandle& n);
     void finalize();
@@ -16,6 +16,15 @@ class ViconDriverROS{
     ViconDriver driver_;
     std::thread vicon_thread_;
 
-    std::vector<std::pair<std::string, ros::Publisher>> pubs_;
+    typedef struct vicon_publishers {
+      ros::Publisher subject_pub;
+      ros::Publisher pose_pub;
+    } vicon_publishers_t;
+
+    // List of subjects. A subject is a name, publishers pair.
+    std::vector<std::pair<std::string, vicon_publishers_t>> pubs_;
     ros::NodeHandle nh_;
+
+    bool publish_subject_;
+    bool publish_pose_;
 };
