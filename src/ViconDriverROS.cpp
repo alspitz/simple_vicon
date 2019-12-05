@@ -89,7 +89,7 @@ void ViconDriverROS::viconCallback(vicon_result_t vicon_result) {
 
       pubs->subject_pub.publish(sub);
     }
-    if (publish_pose_) {
+    if (publish_pose_ && !vicon_pose.occluded) {
       pubs->pose_pub.publish(pose);
     }
   }

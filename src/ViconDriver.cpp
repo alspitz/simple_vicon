@@ -21,7 +21,8 @@ bool ViconDriver::init(const vicon_driver_params_t& params, callback_type callba
 
 void ViconDriver::run_loop() {
   client_.EnableSegmentData();
-
+  int wait_for_buffer_counter = 0;
+  bool ready_for_init = false;
   running_.store(true);
   while (running_.load()) {
     auto result = client_.GetFrame().Result;
@@ -31,6 +32,19 @@ void ViconDriver::run_loop() {
       continue;
     }
 
+    double framerate = client_.GetFrameRate().FrameRateHz;
+    // Wait for flushing the buffer in ServerPush mode
+    if (!ready_for_init)
+    {
+      if (++wait_for_buffer_counter > framerate)
+      {
+        ready_for_init = true;
+      }
+      else
+      {
+        continue;
+      }
+    }
     vicon_result_t res;
     // We assume that the client and the server clocks are time-synced using NTP
     // Proposed strategy: subtract latency from timecode
@@ -41,19 +55,20 @@ void ViconDriver::run_loop() {
     }
 
     // Convert Timecode to seconds
-    double framerate = client_.GetFrameRate().FrameRateHz;
     double timecode_time = timecode.Hours * 3600.0 + timecode.Minutes * 60.0 + timecode.Seconds + (timecode.Frames * timecode.SubFramesPerFrame + timecode.SubFrame) / framerate;
 
     // Is this the first time we're seeing data? If so, initialise timecode_offset_
     // TODO: Determine average round trip network delay in a separate slower thread and save in network_lag_estimate_?
     // TODO: Also add jump logic here since timecode rotates every 24 hours...
-    if (timecode_offset_ == 0.0) {
-      timecode_offset_ = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()
-                         - network_lag_estimate_ - timecode_time;
+    if (timecode_offset_ == 0.0)
+    {
+      auto time_now_sys = std::chrono::high_resolution_clock::now().time_since_epoch();
+      double time_now = std::chrono::duration_cast<std::chrono::duration<double, std::ratio<1>>>(time_now_sys).count();
+      timecode_offset_ = time_now - network_lag_estimate_ - timecode_time;
+      printf("Timecode offset :: %.8f Time:: %.8f Timecode %.8f lag :: %f\n", timecode_offset_, time_now, timecode_time, network_lag_estimate_);
     }
     // Move the timecode to the client (our) clock, and subtract the vicon system estimated latency from it.
     res.time = timecode_time + timecode_offset_ - client_.GetLatencyTotal().Total;
-
     int n_subjects = client_.GetSubjectCount().SubjectCount;
     for (int i = 0; i < n_subjects; i++) {
       std::string subject_name = client_.GetSubjectName(i).SubjectName;
