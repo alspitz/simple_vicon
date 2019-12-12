@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   message_generation
   roscpp
+  tf
 )
 
 add_message_files(

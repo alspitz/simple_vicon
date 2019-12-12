@@ -16,8 +16,9 @@ bool ViconDriverROS::initialize(const ros::NodeHandle& n) {
   ros::param::param<std::string>("vicon/stream_mode", stream_mode, "ServerPush");
   ros::param::param("vicon/publish_subject", publish_subject_, false);
   ros::param::param("vicon/publish_pose", publish_pose_, true);
+  ros::param::param("vicon/publish_tf", publish_tf_, true);
 
-  if (!publish_subject_ && !publish_pose_) {
+  if (!publish_subject_ && !publish_pose_ && !publish_tf_) {
     ROS_WARN("No publishers enabled... exiting.");
     return false;
   }
@@ -91,6 +92,15 @@ void ViconDriverROS::viconCallback(vicon_result_t vicon_result) {
     }
     if (publish_pose_ && !vicon_pose.occluded) {
       pubs->pose_pub.publish(pose);
+    }
+    if (publish_tf_ && !vicon_pose.occluded) {
+      tf::Transform transform;
+      transform.setOrigin(
+          tf::Vector3(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z));
+      transform.setRotation(
+          tf::Quaternion(pose.pose.orientation.x, pose.pose.orientation.y,
+                         pose.pose.orientation.z, pose.pose.orientation.w));
+      br_.sendTransform(tf::StampedTransform(transform, pose.header.stamp, "world", vicon_pose.subject));
     }
   }
 }

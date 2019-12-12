@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <ros/ros.h>
+#include <tf/transform_broadcaster.h>
 
 class ViconDriverROS {
   public:
@@ -15,7 +16,7 @@ class ViconDriverROS {
     void viconCallback(vicon_result_t vicon_result);
     ViconDriver driver_;
     std::thread vicon_thread_;
-
+    tf::TransformBroadcaster br_;
     typedef struct vicon_publishers {
       ros::Publisher subject_pub;
       ros::Publisher pose_pub;
@@ -27,4 +28,5 @@ class ViconDriverROS {
 
     bool publish_subject_;
     bool publish_pose_;
+    bool publish_tf_;
 };
